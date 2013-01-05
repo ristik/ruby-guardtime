@@ -1,3 +1,7 @@
+== About
+
+Ruby API for accessing GuardTime Keyless Signature services.
+
 == Links
 
 API docs: http://rubydoc.info/gems/guardtime/GuardTime
@@ -22,30 +26,30 @@ For convenience, GuardTime publishes an electronic archive containing all Integr
 
 Sign: 
 
-	require 'guardtime'
-	require 'digest/sha2'
+    require 'guardtime'
+    require 'digest/sha2'
 
-	h = Digest::SHA2.new << 'This text shall be signed!'
-	gt = GuardTime.new
-	sig = gt.sign(h)
-	# ...and verify right away
-	puts 'OK!' if gt.verify(sig, h) 
+    h = Digest::SHA2.new << 'This text shall be signed!'
+    gt = GuardTime.new
+    sig = gt.sign(h)
+    # ...and verify right away
+    puts 'OK!' if gt.verify(sig, h) 
 
 Verify:
 
-	def slurpfile (fn)
-	  File.open(fn, 'rb') {|f| f.read}
-	end
+    def slurpfile (fn)
+        File.open(fn, 'rb') {|f| f.read}
+    end
 
-	token = slurpfile('importantdata.txt.gtts')
-	hasher = GuardTime.getnewdigester(token)
-	hasher << slurpfile('importantdata.txt')
-	gt = GuardTime.new
-	signedAt = nil
-	okay = gt.verify(token, hasher) do |r|
-		signedAt = r[:time]
-		/company$/ =~ r[:location_name] and
-			r[:verification_errors] == GuardTime::NO_FAILURES
-	end
-	puts "data signed at #{signedAt.utc.to_s}" if okay
+    token = slurpfile('importantdata.txt.gtts')
+    hasher = GuardTime.getnewdigester(token)
+    hasher << slurpfile('importantdata.txt')
+    gt = GuardTime.new
+    signedAt = nil
+    okay = gt.verify(token, hasher) do |r|
+        signedAt = r[:time]
+        /company$/ =~ r[:location_name] and
+            r[:verification_errors] == GuardTime::NO_FAILURES
+    end
+    puts "data signed at #{signedAt.utc.to_s}" if okay
  
