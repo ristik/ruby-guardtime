@@ -1,0 +1,51 @@
+== Links
+
+API docs: http://rubydoc.info/gems/guardtime/GuardTime
+
+Information about the service: http://www.guardtime.com/signatures/technology-overview/
+
+Installation: see INSTALL
+
+== Background
+
+The two main operations are signing and verification. Signing involves cryptographically binding the data whose integrity is to be protected to the audited time value and server component's identity in a way that neither the data, the time value nor identity could later be changed undetectably. Verification means checking that the binding is still intact.
+
+To get a sigature token from a GuardTime service, the client application computes a hash value of the data to be signed and submits the hash value to the signing service. The service returns a signature token binding the hash value to the current time. The interaction follows the standard cryptographic time-stamping protocol defined in the RFC 3161.
+
+Every month, GuardTime creates an Integrity Code and publishes it in several newspapers across the world. The Integrity Code is a summary of all signatures issued by the GuardTime data integrity services. Any signature issued prior to the creation of the Integrity Code can be traced to it to unambiguously prove the signature’s issuing time, issuer ID and link to signed data, effectively proving the data integrity.
+
+The proof connecting the signature to the Integrity Code can be inserted back into the token in a process we call extending. An extended signature token is completely independent of GuardTime. Only the original data, the signature and any copy of the newspaper where the Integrity Code is published will be necessary to prove the intgerity of the document.
+ 
+For convenience, GuardTime publishes an electronic archive containing all Integrity Codes since the launch of the service and all valid signing keys. This electronic archive can be used to automate mass verification of thousands of timestamps (whether extended or not) per second in a large archive.
+
+== Usage
+
+Sign: 
+
+	require 'guardtime'
+	require 'digest/sha2'
+
+	h = Digest::SHA2.new << 'This text shall be signed!'
+	gt = GuardTime.new
+	sig = gt.sign(h)
+	# ...and verify right away
+	puts 'OK!' if gt.verify(sig, h) 
+
+Verify:
+
+	def slurpfile (fn)
+	  File.open(fn, 'rb') {|f| f.read}
+	end
+
+	token = slurpfile('importantdata.txt.gtts')
+	hasher = GuardTime.getnewdigester(token)
+	hasher << slurpfile('importantdata.txt')
+	gt = GuardTime.new
+	signedAt = nil
+	okay = gt.verify(token, hasher) do |r|
+		signedAt = r[:time]
+		/company$/ =~ r[:location_name] and
+			r[:verification_errors] == GuardTime::NO_FAILURES
+	end
+	puts "data signed at #{signedAt.utc.to_s}" if okay
+ 
