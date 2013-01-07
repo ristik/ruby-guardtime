@@ -1,8 +1,11 @@
-Release 0.0.2 (2013-01-02 by risto):
+Release 0.0.3 (2013-01-07 by risto):
+	- Documentation improvements, supports both RDoc and yard.
+
+Release 0.0.2 (2013-01-05 by risto):
 	- added RDoc
 	- new function 'extend'
 	- minor bug: double free when 'extended' signature is verified
 	- GT library init done at 'require' time instead of instantiation time.
 
-Release 0.0.1 (2013-01-05 by risto):
+Release 0.0.1 (2013-01-02 by risto):
 	- initial verion

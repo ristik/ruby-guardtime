@@ -4,7 +4,7 @@ Ruby API for accessing GuardTime Keyless Signature services.
 
 == Links
 
-API docs: http://rubydoc.info/gems/guardtime/GuardTime
+API docs: http://rubydoc.info/gems/guardtime/
 
 Information about the service: http://www.guardtime.com/signatures/technology-overview/
 

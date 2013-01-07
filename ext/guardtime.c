@@ -36,7 +36,7 @@ typedef struct _GuardTimeData {
 	char * loadpubs;
 	time_t pubdataupdated;
 	GT_Time_t64 lastpublicationtime;
-    GTPublicationsFile *pub;   
+	GTPublicationsFile *pub;   
 } GuardTimeData;
 
 
@@ -180,7 +180,6 @@ cleanup:
 	return res;
 }
 
-
 static void get_gtdatahash(VALUE digest, GTDataHash *dh)
 {
 	int gtalgoid;
@@ -189,17 +188,17 @@ static void get_gtdatahash(VALUE digest, GTDataHash *dh)
 	int bitlen = 8 * NUM2INT(rb_funcall(digest, rb_intern("digest_length"), 0));
 
 	gtalgoid = (
-          strcasecmp(cn, "Digest::SHA1") == 0 ? GT_HASHALG_SHA1 :
-          strcasecmp(cn, "Digest::SHA2") == 0 ? 
-          	(bitlen == 224 ? GT_HASHALG_SHA224 :
-          		bitlen == 256 ? GT_HASHALG_SHA256 :
-				bitlen == 384 ? GT_HASHALG_SHA384 :
-				bitlen == 512 ? GT_HASHALG_SHA512 : -1
-          	)  :
-          strcasecmp(cn, "Digest::RMD160") == 0 ? GT_HASHALG_RIPEMD160 :
-          -1);
+		strcasecmp(cn, "Digest::SHA1") == 0 ? GT_HASHALG_SHA1 :
+			strcasecmp(cn, "Digest::SHA2") == 0 ? 
+				(bitlen == 224 ? GT_HASHALG_SHA224 :
+					bitlen == 256 ? GT_HASHALG_SHA256 :
+					bitlen == 384 ? GT_HASHALG_SHA384 :
+					bitlen == 512 ? GT_HASHALG_SHA512 : -1
+				):
+			strcasecmp(cn, "Digest::RMD160") == 0 ? GT_HASHALG_RIPEMD160 : -1
+		);
 	if (gtalgoid < 0)
-		rb_raise(rb_eRuntimeError, "Argument must be supported Digest::... instance.");
+		rb_raise(rb_eArgError, "Argument must be supported Digest::... instance.");
 
 	dh->context = NULL;
 	dh->algorithm = gtalgoid;
@@ -213,15 +212,15 @@ static void get_gtdatahash2(VALUE algo, VALUE digest, GTDataHash *dh)
 	StringValue(algo);
 	StringValue(digest);
 	gtalgoid = (
-          strcasecmp(RSTRING_PTR(algo), "sha1") == 0 ? GT_HASHALG_SHA1 :
-          strcasecmp(RSTRING_PTR(algo), "sha224") == 0 ? GT_HASHALG_SHA224 :
-          strcasecmp(RSTRING_PTR(algo), "sha256") == 0 ? GT_HASHALG_SHA256 :
-          strcasecmp(RSTRING_PTR(algo), "sha384") == 0 ? GT_HASHALG_SHA384 :
-          strcasecmp(RSTRING_PTR(algo), "sha512") == 0 ? GT_HASHALG_SHA512 :
-          strcasecmp(RSTRING_PTR(algo), "ripemd160") == 0 ? GT_HASHALG_RIPEMD160 :
-          -1);
+		  strcasecmp(RSTRING_PTR(algo), "sha1") == 0 ? GT_HASHALG_SHA1 :
+		  strcasecmp(RSTRING_PTR(algo), "sha224") == 0 ? GT_HASHALG_SHA224 :
+		  strcasecmp(RSTRING_PTR(algo), "sha256") == 0 ? GT_HASHALG_SHA256 :
+		  strcasecmp(RSTRING_PTR(algo), "sha384") == 0 ? GT_HASHALG_SHA384 :
+		  strcasecmp(RSTRING_PTR(algo), "sha512") == 0 ? GT_HASHALG_SHA512 :
+		  strcasecmp(RSTRING_PTR(algo), "ripemd160") == 0 ? GT_HASHALG_RIPEMD160 :
+		  -1);
 	if (gtalgoid < 0)
-		rb_raise(rb_eRuntimeError, "Argument must be supported Digest::... instance.");
+		rb_raise(rb_eArgError, "Argument must be supported Digest::... instance.");
 
 	dh->context = NULL;
 	dh->algorithm = gtalgoid;
@@ -252,8 +251,8 @@ guardtime_sign(int argc, VALUE *argv, VALUE obj)
 	GTDataHash dh;
 	GTTimestamp *ts;
 	unsigned char *data;
-    size_t data_length;
-    GuardTimeData *gt;
+	size_t data_length;
+	GuardTimeData *gt;
 	VALUE hash, hash2, result;
 
 	switch (rb_scan_args(argc, argv, "11", &hash, &hash2)) {
@@ -268,14 +267,13 @@ guardtime_sign(int argc, VALUE *argv, VALUE obj)
 	res = GTHTTP_createTimestampHash(&dh, gt->signeruri, &ts);
 	if (res != GT_OK)
 		rb_raise(rb_eRuntimeError, GT_getErrorString(res));
-		// todo - return here? or does it use longjmp etc?
 
-    res = GTTimestamp_getDEREncoded(ts, &data, &data_length);
+	res = GTTimestamp_getDEREncoded(ts, &data, &data_length);
 	if (res != GT_OK)
 		rb_raise(rb_eRuntimeError, GT_getErrorString(res));
-    GTTimestamp_free(ts);
-    result = rb_str_new((char*)data, data_length);
-    GT_free(data);
+	GTTimestamp_free(ts);
+	result = rb_str_new((char*)data, data_length);
+	GT_free(data);
 	return result;
 }
 
@@ -291,7 +289,7 @@ guardtime_sign(int argc, VALUE *argv, VALUE obj)
  *   - +ArgumentError+ -> if any value is nil or wrong type.
  *   - +RuntimeError+ -> other errors, including network, hash value, token too new or old etc. Proper description is in the error message.
  * Extended signature token may be used for 'independent' verification without any keys or services. Just data, token and newspaper with published value.
- * There is no point in extending the signature before next newspaper publication is performed. Good rule of thumb is to wait for 35 days, or until 15th date plus 5 more days.
+ * There is no point in extending new signature before next newspaper publication is performed. Good rule of thumb is to wait for 35 days (after signing), or until 15th date plus 5 more days.
  */
 static VALUE
 guardtime_extend(VALUE obj, VALUE in)
@@ -300,28 +298,28 @@ guardtime_extend(VALUE obj, VALUE in)
 	GTDataHash dh;
 	GTTimestamp *ts, *ts2;
 	unsigned char *data;
-    size_t data_length;
-    GuardTimeData *gt;
+	size_t data_length;
+	GuardTimeData *gt;
 	VALUE result;
 
 	StringValue(in);
 	Data_Get_Struct(obj, GuardTimeData, gt);
 	res = GTTimestamp_DERDecode(RSTRING_PTR(in), 
-    					RSTRING_LEN(in), &ts);
-    if (res != GT_OK)
-		rb_raise(rb_eArgError, GT_getErrorString(res));
+						RSTRING_LEN(in), &ts);
+	if (res != GT_OK)
+		rb_raise(rb_eRuntimeError, GT_getErrorString(res));
 
 	res = GTHTTP_extendTimestamp(ts, gt->verifieruri, &ts2);
 	GTTimestamp_free(ts);
 	if (res != GT_OK)
 		rb_raise(rb_eRuntimeError, GT_getErrorString(res));
 
-    res = GTTimestamp_getDEREncoded(ts2, &data, &data_length);
+	res = GTTimestamp_getDEREncoded(ts2, &data, &data_length);
 	if (res != GT_OK)
 		rb_raise(rb_eRuntimeError, GT_getErrorString(res));
 
-    result = rb_str_new((char*)data, data_length);
-    GT_free(data);
+	result = rb_str_new((char*)data, data_length);
+	GT_free(data);
 	return result;
 }
 
@@ -331,7 +329,7 @@ int loadpubs_helper(GuardTimeData *gt) {
 	GTPubFileVerificationInfo *pub_ver;
 
 	if (gt->pub != NULL)
-       	GTPublicationsFile_free(gt->pub);		
+		GTPublicationsFile_free(gt->pub);		
 	res = GTHTTP_getPublicationsFile(gt->pubfileuri, &(gt->pub));
 	if (res == GT_OK)
 		res = GTPublicationsFile_verify(gt->pub, &pub_ver);
@@ -403,20 +401,20 @@ format_location_id(GT_UInt64 l)
 static VALUE
 format_hash_algorithm(int alg)
 {
-    switch(alg) {  
-    	case GT_HASHALG_SHA256: 
-    		return rb_str_new2("SHA256");
-     	case GT_HASHALG_SHA1: 
-     		return rb_str_new2("SHA1");
-     	case GT_HASHALG_RIPEMD160: 
-     		return rb_str_new2("RIPEMD160");
-     	case GT_HASHALG_SHA224: 
-     		return rb_str_new2("SHA224");
-     	case GT_HASHALG_SHA384: 
-     		return rb_str_new2("SHA384");
-     	case GT_HASHALG_SHA512: 
-     		return rb_str_new2("SHA512");
-    	default:
+	switch(alg) {  
+		case GT_HASHALG_SHA256: 
+			return rb_str_new2("SHA256");
+		case GT_HASHALG_SHA1: 
+			return rb_str_new2("SHA1");
+		case GT_HASHALG_RIPEMD160: 
+			return rb_str_new2("RIPEMD160");
+		case GT_HASHALG_SHA224: 
+			return rb_str_new2("SHA224");
+		case GT_HASHALG_SHA384: 
+			return rb_str_new2("SHA384");
+		case GT_HASHALG_SHA512: 
+			return rb_str_new2("SHA512");
+		default:
 			return Qnil;
 	}
 }
@@ -440,7 +438,7 @@ format_hash_algorithm(int alg)
  *   - +ArgumentError+ -> if any value is nil or wrong type, or signature token is corrupted.
  *   - +RuntimeError+ -> other errors, including network, hash value etc.
  * 
- * Code block receives parameter +resulthash+ which is populated with signature properties. There are following keys:
+ * Code block receives parameter +resulthash+ which is populated with verified signature properties. There are following keys:
  * *verification_errors*::	bitfield containing verification errors. See class constants. Verification is successful only if value equals to <tt>GuardTime::NO_FAILURES</tt>
  * *verification_status*::	Numeric bitfield -- flags identifying successful verification checks. See class constants.
  * *time*::				Time object containing signing (time-stamp) datum.
@@ -491,29 +489,29 @@ guardtime_verify(int argc, VALUE *argv, VALUE obj)
 	argcount = rb_scan_args(argc, argv, "12&", &tsdata, &hash, &hash2, &block);
 	StringValue(tsdata);
 
-    res = GTTimestamp_DERDecode(RSTRING_PTR(tsdata), 
-    					RSTRING_LEN(tsdata), &ts);
-    if (res != GT_OK)
+	res = GTTimestamp_DERDecode(RSTRING_PTR(tsdata), 
+						RSTRING_LEN(tsdata), &ts);
+	if (res != GT_OK)
 		rb_raise(rb_eArgError, GT_getErrorString(res));
 
 	loadpubs(obj);
-    GTVerificationInfo *verification_info = NULL;
-    switch (argcount) {
-    	case 1:
-		    res = verifyTimestamp(ts, NULL, gt, RTEST(block)? 1:0, &verification_info);
-   	    	break;
-   	    case 2:
+	GTVerificationInfo *verification_info = NULL;
+	switch (argcount) {
+		case 1:
+			res = verifyTimestamp(ts, NULL, gt, RTEST(block)? 1:0, &verification_info);
+			break;
+		case 2:
 			get_gtdatahash(hash, &dh);
-		    res = verifyTimestamp(ts, &dh, gt, RTEST(block)? 1:0, &verification_info);
-		    break;
-   	    case 3:
+			res = verifyTimestamp(ts, &dh, gt, RTEST(block)? 1:0, &verification_info);
+			break;
+		case 3:
 			get_gtdatahash2(hash, hash2, &dh);
-		    res = verifyTimestamp(ts, &dh, gt, RTEST(block)? 1:0, &verification_info);
-		    break;
-    }
+			res = verifyTimestamp(ts, &dh, gt, RTEST(block)? 1:0, &verification_info);
+			break;
+	}
 
 	if (res != GT_OK) {
-	    GTTimestamp_free(ts);
+		GTTimestamp_free(ts);
 		rb_raise(rb_eRuntimeError, GT_getErrorString(res));
 	}
 
@@ -522,7 +520,7 @@ guardtime_verify(int argc, VALUE *argv, VALUE obj)
 #define RBSET(n, v)    \
 	(		rb_hash_aset(retval, ID2SYM(rb_intern(n)), (v))  )
 
- 	if (RTEST(block)) {
+	if (RTEST(block)) {
 		retval = rb_hash_new();
 		RBSET("verification_status", INT2FIX( verification_info->verification_status ));
 		RBSET("verification_errors", INT2FIX( verification_info->verification_errors ));
@@ -549,11 +547,11 @@ guardtime_verify(int argc, VALUE *argv, VALUE obj)
 
 		RBSET("time", time_t_to_Time( verification_info->implicit_data->registered_time ));
 		RBSET("publication_time", time_t_to_Time( verification_info->explicit_data->publication_identifier ));
-   	} else
-   		retval = verification_info->verification_errors == GT_NO_FAILURES ? Qtrue : Qfalse;
+	} else
+		retval = verification_info->verification_errors == GT_NO_FAILURES ? Qtrue : Qfalse;
 
-    GTTimestamp_free(ts);
-    GTVerificationInfo_free(verification_info);
+	GTTimestamp_free(ts);
+	GTVerificationInfo_free(verification_info);
 
 	if (RTEST(block))
 		return rb_funcall(block, rb_intern("call"), 1, retval);
@@ -577,48 +575,48 @@ static VALUE
 guardtime_getnewdigester(VALUE self, VALUE tsdata)
 {
 	int res;
-    int alg;
+	int alg;
 	GTTimestamp *ts;
 	VALUE module_klass, args[1];
 
 	StringValue(tsdata);
 
 	res = GTTimestamp_DERDecode(RSTRING_PTR(tsdata), RSTRING_LEN(tsdata), &ts);
-    if (res != GT_OK)
+	if (res != GT_OK)
 		rb_raise(rb_eRuntimeError, GT_getErrorString(res));
 
-    res = GTTimestamp_getAlgorithm(ts, &alg);
-    GTTimestamp_free(ts);
-    if (res != GT_OK)
+	res = GTTimestamp_getAlgorithm(ts, &alg);
+	GTTimestamp_free(ts);
+	if (res != GT_OK)
 		rb_raise(rb_eRuntimeError, GT_getErrorString(res));
 
 	// checkifnecessary: rb_requre('digest');
 	module_klass = rb_const_get(rb_cObject, rb_intern("Digest"));
 
 	switch(alg) {  
-    	case GT_HASHALG_SHA256: 
-    		args[0] = INT2FIX(256);
-     		return rb_class_new_instance(1, args,
-     				rb_const_get(module_klass, rb_intern("SHA2")));
-     	case GT_HASHALG_SHA1: 
-     		return rb_class_new_instance(0, NULL, 
-     				rb_const_get(module_klass, rb_intern("SHA1")));
-     	case GT_HASHALG_RIPEMD160:
-     		return rb_class_new_instance(0, NULL, 
-     				rb_const_get(module_klass, rb_intern("RMD160")));
+		case GT_HASHALG_SHA256: 
+			args[0] = INT2FIX(256);
+			return rb_class_new_instance(1, args,
+					rb_const_get(module_klass, rb_intern("SHA2")));
+		case GT_HASHALG_SHA1: 
+			return rb_class_new_instance(0, NULL, 
+					rb_const_get(module_klass, rb_intern("SHA1")));
+		case GT_HASHALG_RIPEMD160:
+			return rb_class_new_instance(0, NULL, 
+					rb_const_get(module_klass, rb_intern("RMD160")));
 		case GT_HASHALG_SHA224: 
-    		args[0] = INT2FIX(224);
-     		return rb_class_new_instance(1, args,
-     				rb_const_get(module_klass, rb_intern("SHA2")));
-     	case GT_HASHALG_SHA384:
-    		args[0] = INT2FIX(384);
-     	    return rb_class_new_instance(1, args,
-     				rb_const_get(module_klass, rb_intern("SHA2")));
-     	case GT_HASHALG_SHA512:
-    		args[0] = INT2FIX(512);
-     		return rb_class_new_instance(1, args,
-     				rb_const_get(module_klass, rb_intern("SHA2")));
-      	default:
+			args[0] = INT2FIX(224);
+			return rb_class_new_instance(1, args,
+					rb_const_get(module_klass, rb_intern("SHA2")));
+		case GT_HASHALG_SHA384:
+			args[0] = INT2FIX(384);
+			return rb_class_new_instance(1, args,
+					rb_const_get(module_klass, rb_intern("SHA2")));
+		case GT_HASHALG_SHA512:
+			args[0] = INT2FIX(512);
+			return rb_class_new_instance(1, args,
+					rb_const_get(module_klass, rb_intern("SHA2")));
+		default:
 			rb_raise(rb_eRuntimeError, "Unknown hash algorithm ID");
 	}
 	return Qnil;
@@ -640,34 +638,34 @@ static VALUE
 guardtime_gethashalg(VALUE self, VALUE tsdata)
 {
 	int res;
-    int alg;
+	int alg;
 	GTTimestamp *ts;
 
 	StringValue(tsdata);
 
 	res = GTTimestamp_DERDecode(RSTRING_PTR(tsdata), RSTRING_LEN(tsdata), &ts);
-    if (res != GT_OK)
+	if (res != GT_OK)
 		rb_raise(rb_eRuntimeError, GT_getErrorString(res));
 
-    res = GTTimestamp_getAlgorithm(ts, &alg);
-    GTTimestamp_free(ts);
-    if (res != GT_OK)
+	res = GTTimestamp_getAlgorithm(ts, &alg);
+	GTTimestamp_free(ts);
+	if (res != GT_OK)
 		rb_raise(rb_eRuntimeError, GT_getErrorString(res));
 
-    switch(alg) {  
-    	case GT_HASHALG_SHA256: 
-    		return rb_str_new2("SHA256");
-     	case GT_HASHALG_SHA1: 
-     		return rb_str_new2("SHA1");
-     	case GT_HASHALG_RIPEMD160: 
-     		return rb_str_new2("RIPEMD160");
-     	case GT_HASHALG_SHA224: 
-     		return rb_str_new2("SHA224");
-     	case GT_HASHALG_SHA384: 
-     		return rb_str_new2("SHA384");
-     	case GT_HASHALG_SHA512: 
-     		return rb_str_new2("SHA512");
-    	default:
+	switch(alg) {  
+		case GT_HASHALG_SHA256: 
+			return rb_str_new2("SHA256");
+		case GT_HASHALG_SHA1: 
+			return rb_str_new2("SHA1");
+		case GT_HASHALG_RIPEMD160: 
+			return rb_str_new2("RIPEMD160");
+		case GT_HASHALG_SHA224: 
+			return rb_str_new2("SHA224");
+		case GT_HASHALG_SHA384: 
+			return rb_str_new2("SHA384");
+		case GT_HASHALG_SHA512: 
+			return rb_str_new2("SHA512");
+		default:
 			rb_raise(rb_eRuntimeError, "Unknown hash algorithm ID");
 	}
 	return Qnil;
@@ -683,49 +681,46 @@ each_conf_param(VALUE key, VALUE value, VALUE klass)
 
 	if (key == Qundef) return ST_CONTINUE;
 	switch(TYPE(key)) {
-    case T_STRING:
-        key_id = rb_intern(RSTRING_PTR(key));
-        break;
-    case T_SYMBOL:
-        key_id = SYM2ID(key);
-        break;
-    default:
-        rb_raise(rb_eArgError,
-                 "config hash includes invalid key");
-    }
-    if (TYPE(value) != T_STRING)
-        rb_raise(rb_eArgError,
-                 "config hash value for '%s' must be a String", rb_id2name(key_id));
-
-    if (strcasecmp(rb_id2name(key_id), "signeruri") == 0)
-    	gt->signeruri = RSTRING_PTR(value); // strdup() perhaps?
-    else if (strcasecmp(rb_id2name(key_id), "verifieruri") == 0) {
-    	if (strlen(gt->verifieruri) > 0)
-        	gt->verifieruri = RSTRING_PTR(value);
-       	else
-    		gt->verifieruri = NULL; // no extending
+	case T_STRING:
+		key_id = rb_intern(RSTRING_PTR(key));
+		break;
+	case T_SYMBOL:
+		key_id = SYM2ID(key);
+		break;
+	default:
+		rb_raise(rb_eArgError,
+				 "config hash includes invalid key");
 	}
-    else if (strcasecmp(rb_id2name(key_id), "publicationsuri") == 0)
-    	gt->pubfileuri = RSTRING_PTR(value);
-    else if (strcasecmp(rb_id2name(key_id), "loadpubs") == 0)
-    	gt->loadpubs = RSTRING_PTR(value);
-   	else
-    	rb_raise(rb_eArgError,
-                 "config hash has unknown key '%s'", rb_id2name(key_id));
+	if (TYPE(value) != T_STRING)
+		rb_raise(rb_eArgError,
+				 "config hash value for '%s' must be a String", rb_id2name(key_id));
 
-    return ST_CONTINUE;   
+	if (strcasecmp(rb_id2name(key_id), "signeruri") == 0)
+		gt->signeruri = RSTRING_PTR(value); // strdup() perhaps?
+	else if (strcasecmp(rb_id2name(key_id), "verifieruri") == 0) {
+		if (strlen(gt->verifieruri) > 0)
+			gt->verifieruri = RSTRING_PTR(value);
+		else
+			gt->verifieruri = NULL; // no extending
+	}
+	else if (strcasecmp(rb_id2name(key_id), "publicationsuri") == 0)
+		gt->pubfileuri = RSTRING_PTR(value);
+	else if (strcasecmp(rb_id2name(key_id), "loadpubs") == 0)
+		gt->loadpubs = RSTRING_PTR(value);
+	else
+		rb_raise(rb_eArgError,
+				 "config hash has unknown key '%s'", rb_id2name(key_id));
+
+	return ST_CONTINUE;   
 }
 
 static void
 guardtime_free(GuardTimeData *gt) 
 {
 	if (gt) {
-        if (gt->pub != NULL)
-        	GTPublicationsFile_free(gt->pub);
-        // we'll initialize gt libs when module is 'required' to keep singletons happy; thus free at end of time.
-        // GTHTTP_finalize();
-        // GT_finalize();
-   		free(gt);
+		if (gt->pub != NULL)
+			GTPublicationsFile_free(gt->pub);
+		free(gt);
 	}
 
 }
@@ -754,11 +749,21 @@ guardtime_allocate(VALUE self)
  * * *Args*    :
  *   - +confighash+ -> Optional Hash containing configuration parameters. Defaults:
  *    { :signeruri =>       'http://verifier.guardtime.net/gt-extendingservice',
- *      :verifieruri =>     'http://verifier.guardtime.net/gt-extendingservice',  # if blank String then online verification is not used
+ *      :verifieruri =>     'http://verifier.guardtime.net/gt-extendingservice',
  *      :publicationsuri => 'http://verify.guardtime.com/gt-controlpublications.bin',
- *      :loadpubs => 'auto'    ## or once, always, no, auto (update every 8 hours)
+ *      :loadpubs => 'auto'
  *    }
- * Please use env. parameters to specify proxy ({syntax}[http://curl.haxx.se/docs/manpage.html#ENVIRONMENT]), Internet Explorer settints will be used on Windows. Specify url as <em>http://name:pass@site/url</em> for basic auth.
+ * 
+ * * *Notes*    :
+ *   - If <tt>:verifieruri</tt> is blank String then online verification is not used.
+ *
+ *   - <tt>:loadpubs</tt> may be either 
+ *     +once+::   Publications file is loaded once.
+ *     +always+:: Publications file is reloaded at each verification call
+ *     +no+::     Publications file is not used for verification. May be good as token consistency check, or with extra verification (e.g. manual publication string check)
+ *     +auto+::   Publications file is automatically reloaded if older than 8 hours. Default.
+ * 
+ *   - Please use environment to specify proxy ({syntax}[http://curl.haxx.se/docs/manpage.html#ENVIRONMENT]), Internet Explorer settints will be used on Windows. Specify url as <em>http://name:pass@site/url</em> for basic auth.
  */
 static VALUE
 guardtime_initialize(int argc, VALUE *argv, VALUE obj)
@@ -771,7 +776,7 @@ guardtime_initialize(int argc, VALUE *argv, VALUE obj)
 }
 
 /* 
- * This API provides access to GuardTime keyless signature service.
+ * This API provides access to the GuardTime keyless signature service.
  */
 void Init_guardtime()
 {
@@ -783,7 +788,7 @@ void Init_guardtime()
 	if (res != GT_OK)
 		rb_raise(rb_eRuntimeError, GT_getErrorString(res));
 
-    rb_cGuardTime = rb_define_class("GuardTime", rb_cObject);
+	rb_cGuardTime = rb_define_class("GuardTime", rb_cObject);
 	rb_define_alloc_func(rb_cGuardTime, guardtime_allocate);
 	rb_define_method(rb_cGuardTime, "initialize", guardtime_initialize, -1);
 	rb_define_method(rb_cGuardTime, "sign", guardtime_sign, -1);
