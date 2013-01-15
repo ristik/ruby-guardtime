@@ -6,6 +6,10 @@ rvm:
   - rbx-19mode
   - ree
 
-before-install: 'wget http://download.guardtime.com/libgt-0.3.11-src.tgz  -O - | tar xfz - && cd libgt-0.3.11 && ./configure --disable-shared && make && sudo make install && cd ..'
+install: 'wget http://download.guardtime.com/libgt-0.3.11-src.tgz  -O - | tar xfz - && cd libgt-0.3.11 && ./configure --disable-shared && make && sudo make install && cd ..'
 
-script: 'ruby test/tc_guardtime.rb'
+script: 
+  - 'ruby ext/extconf.rb'
+  - make
+  - 'ruby test/tc_guardtime.rb'
+  - 'gem build guardtime.gemspec'
