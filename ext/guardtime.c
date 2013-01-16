@@ -15,7 +15,11 @@
  */
 
 #include "ruby.h"
-#include <st.h>
+#if RUBY_VERSION >= 190
+#  include <ruby/st.h>
+#else
+#  include <st.h>
+#endif
 #include <time.h>
 #include <gt_base.h>
 #include <gt_http.h>
@@ -30,10 +34,10 @@ static VALUE rb_cGuardTime;
 
 // object instance state
 typedef struct _GuardTimeData {
-	char * signeruri;
-	char * verifieruri;
-	char * pubfileuri;
-	char * loadpubs;
+	const char* signeruri;
+	const char* verifieruri;
+	const char* pubfileuri;
+	const char* loadpubs;
 	time_t pubdataupdated;
 	GT_Time_t64 lastpublicationtime;
 	GTPublicationsFile *pub;   
@@ -266,11 +270,11 @@ guardtime_sign(int argc, VALUE *argv, VALUE obj)
 	Data_Get_Struct(obj, GuardTimeData, gt);
 	res = GTHTTP_createTimestampHash(&dh, gt->signeruri, &ts);
 	if (res != GT_OK)
-		rb_raise(rb_eRuntimeError, GT_getErrorString(res));
+		rb_raise(rb_eRuntimeError, "%s", GT_getErrorString(res));
 
 	res = GTTimestamp_getDEREncoded(ts, &data, &data_length);
 	if (res != GT_OK)
-		rb_raise(rb_eRuntimeError, GT_getErrorString(res));
+		rb_raise(rb_eRuntimeError, "%s", GT_getErrorString(res));
 	GTTimestamp_free(ts);
 	result = rb_str_new((char*)data, data_length);
 	GT_free(data);
@@ -295,7 +299,6 @@ static VALUE
 guardtime_extend(VALUE obj, VALUE in)
 {
 	int res;
-	GTDataHash dh;
 	GTTimestamp *ts, *ts2;
 	unsigned char *data;
 	size_t data_length;
@@ -307,16 +310,16 @@ guardtime_extend(VALUE obj, VALUE in)
 	res = GTTimestamp_DERDecode(RSTRING_PTR(in), 
 						RSTRING_LEN(in), &ts);
 	if (res != GT_OK)
-		rb_raise(rb_eRuntimeError, GT_getErrorString(res));
+		rb_raise(rb_eRuntimeError, "%s", GT_getErrorString(res));
 
 	res = GTHTTP_extendTimestamp(ts, gt->verifieruri, &ts2);
 	GTTimestamp_free(ts);
 	if (res != GT_OK)
-		rb_raise(rb_eRuntimeError, GT_getErrorString(res));
+		rb_raise(rb_eRuntimeError, "%s", GT_getErrorString(res));
 
 	res = GTTimestamp_getDEREncoded(ts2, &data, &data_length);
 	if (res != GT_OK)
-		rb_raise(rb_eRuntimeError, GT_getErrorString(res));
+		rb_raise(rb_eRuntimeError, "%s", GT_getErrorString(res));
 
 	result = rb_str_new((char*)data, data_length);
 	GT_free(data);
@@ -373,14 +376,14 @@ static void loadpubs(VALUE self)
 		rb_raise(rb_eRuntimeError, "Error downloading/validating publishing data: %s", GT_getErrorString(res));	
 }
 
-static VALUE
-time_t_to_Time(GT_Time_t64 t)
+static VALUE 
+gttime_to_rubyTime(GT_Time_t64 t) 
 {
-	VALUE rb_cTime, rubytime;
+	VALUE ruby_cTime, rubytime;
 	if (t == 0)
 		return Qnil;
-	rb_cTime = rb_const_get(rb_cObject, rb_intern("Time"));
-	rubytime = rb_funcall(rb_cTime,	rb_intern("at"), 1, ULL2NUM(t));
+	ruby_cTime = rb_const_get(rb_cObject, rb_intern("Time"));
+	rubytime = rb_funcall(ruby_cTime, rb_intern("at"), 1, ULL2NUM(t));
 	return rubytime;
 }
 
@@ -484,6 +487,7 @@ guardtime_verify(int argc, VALUE *argv, VALUE obj)
 	GTDataHash dh;
 	GuardTimeData *gt;
 	VALUE tsdata, hash, hash2, block, retval;
+	GTVerificationInfo *verification_info = NULL;
 	Data_Get_Struct(obj, GuardTimeData, gt);
 
 	argcount = rb_scan_args(argc, argv, "12&", &tsdata, &hash, &hash2, &block);
@@ -492,10 +496,9 @@ guardtime_verify(int argc, VALUE *argv, VALUE obj)
 	res = GTTimestamp_DERDecode(RSTRING_PTR(tsdata), 
 						RSTRING_LEN(tsdata), &ts);
 	if (res != GT_OK)
-		rb_raise(rb_eArgError, GT_getErrorString(res));
+		rb_raise(rb_eArgError, "%s", GT_getErrorString(res));
 
 	loadpubs(obj);
-	GTVerificationInfo *verification_info = NULL;
 	switch (argcount) {
 		case 1:
 			res = verifyTimestamp(ts, NULL, gt, RTEST(block)? 1:0, &verification_info);
@@ -512,7 +515,7 @@ guardtime_verify(int argc, VALUE *argv, VALUE obj)
 
 	if (res != GT_OK) {
 		GTTimestamp_free(ts);
-		rb_raise(rb_eRuntimeError, GT_getErrorString(res));
+		rb_raise(rb_eRuntimeError, "%s", GT_getErrorString(res));
 	}
 
 #define RBNILSTR(n, i) \
@@ -545,8 +548,8 @@ guardtime_verify(int argc, VALUE *argv, VALUE obj)
 		} else
 			RBSET("pub_reference_list", Qnil);
 
-		RBSET("time", time_t_to_Time( verification_info->implicit_data->registered_time ));
-		RBSET("publication_time", time_t_to_Time( verification_info->explicit_data->publication_identifier ));
+		RBSET("time", gttime_to_rubyTime( verification_info->implicit_data->registered_time ));
+		RBSET("publication_time", gttime_to_rubyTime( verification_info->explicit_data->publication_identifier ));
 	} else
 		retval = verification_info->verification_errors == GT_NO_FAILURES ? Qtrue : Qfalse;
 
@@ -583,12 +586,12 @@ guardtime_getnewdigester(VALUE self, VALUE tsdata)
 
 	res = GTTimestamp_DERDecode(RSTRING_PTR(tsdata), RSTRING_LEN(tsdata), &ts);
 	if (res != GT_OK)
-		rb_raise(rb_eRuntimeError, GT_getErrorString(res));
+		rb_raise(rb_eRuntimeError, "%s", GT_getErrorString(res));
 
 	res = GTTimestamp_getAlgorithm(ts, &alg);
 	GTTimestamp_free(ts);
 	if (res != GT_OK)
-		rb_raise(rb_eRuntimeError, GT_getErrorString(res));
+		rb_raise(rb_eRuntimeError, "%s", GT_getErrorString(res));
 
 	// checkifnecessary: rb_requre('digest');
 	module_klass = rb_const_get(rb_cObject, rb_intern("Digest"));
@@ -617,7 +620,7 @@ guardtime_getnewdigester(VALUE self, VALUE tsdata)
 			return rb_class_new_instance(1, args,
 					rb_const_get(module_klass, rb_intern("SHA2")));
 		default:
-			rb_raise(rb_eRuntimeError, "Unknown hash algorithm ID");
+			rb_raise(rb_eRuntimeError, "%s", "Unknown hash algorithm ID");
 	}
 	return Qnil;
 }
@@ -645,12 +648,12 @@ guardtime_gethashalg(VALUE self, VALUE tsdata)
 
 	res = GTTimestamp_DERDecode(RSTRING_PTR(tsdata), RSTRING_LEN(tsdata), &ts);
 	if (res != GT_OK)
-		rb_raise(rb_eRuntimeError, GT_getErrorString(res));
+		rb_raise(rb_eRuntimeError, "%s", GT_getErrorString(res));
 
 	res = GTTimestamp_getAlgorithm(ts, &alg);
 	GTTimestamp_free(ts);
 	if (res != GT_OK)
-		rb_raise(rb_eRuntimeError, GT_getErrorString(res));
+		rb_raise(rb_eRuntimeError, "%s", GT_getErrorString(res));
 
 	switch(alg) {  
 		case GT_HASHALG_SHA256: 
@@ -783,10 +786,10 @@ void Init_guardtime()
 	int res;
 	res = GT_init();
 	if (res != GT_OK)
-		rb_raise(rb_eRuntimeError, GT_getErrorString(res));
-	res = GTHTTP_init("ruby api 0.0.1", 1);
+		rb_raise(rb_eRuntimeError, "%s", GT_getErrorString(res));
+	res = GTHTTP_init("ruby api 0.0.4", 1);
 	if (res != GT_OK)
-		rb_raise(rb_eRuntimeError, GT_getErrorString(res));
+		rb_raise(rb_eRuntimeError, "%s", GT_getErrorString(res));
 
 	rb_cGuardTime = rb_define_class("GuardTime", rb_cObject);
 	rb_define_alloc_func(rb_cGuardTime, guardtime_allocate);

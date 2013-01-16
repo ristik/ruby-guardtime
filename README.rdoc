@@ -52,4 +52,11 @@ Verify:
             r[:verification_errors] == GuardTime::NO_FAILURES
     end
     puts "data signed at #{signedAt.utc.to_s}" if okay
- 
+
+
+
+{<img src="https://travis-ci.org/ristik/ruby-guardtime.png?branch=master" alt="Build Status" />}[http://travis-ci.org/ristik/ruby-guardtime]
+
+---
+Published under Apache license v. 2.0.
+Copyright GuardTime AS 2013

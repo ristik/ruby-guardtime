@@ -6,7 +6,7 @@ rvm:
   - rbx-19mode
   - ree
 
-install: 'wget http://download.guardtime.com/libgt-0.3.11-src.tgz  -O - | tar xfz - && cd libgt-0.3.11 && ./configure --disable-shared && make && sudo make install && cd ..'
+install: 'wget http://download.guardtime.com/libgt-0.3.11-src.tgz  -O - | tar xfz - && cd libgt-0.3.11 &&  ./configure --silent --prefix=/usr && make && sudo make install && cd ..'
 
 script: 
   - 'ruby ext/extconf.rb'
