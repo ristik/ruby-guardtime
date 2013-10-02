@@ -270,7 +270,7 @@ guardtime_sign(int argc, VALUE *argv, VALUE obj)
 	Data_Get_Struct(obj, GuardTimeData, gt);
 	res = GTHTTP_createTimestampHash(&dh, gt->signeruri, &ts);
 	if (res != GT_OK)
-		rb_raise(rb_eRuntimeError, "%s", GT_getErrorString(res));
+		rb_raise(rb_eRuntimeError, "%s", GTHTTP_getErrorString(res));
 
 	res = GTTimestamp_getDEREncoded(ts, &data, &data_length);
 	if (res != GT_OK)
@@ -315,7 +315,7 @@ guardtime_extend(VALUE obj, VALUE in)
 	res = GTHTTP_extendTimestamp(ts, gt->verifieruri, &ts2);
 	GTTimestamp_free(ts);
 	if (res != GT_OK)
-		rb_raise(rb_eRuntimeError, "%s", GT_getErrorString(res));
+		rb_raise(rb_eRuntimeError, "%s", GTHTTP_getErrorString(res));
 
 	res = GTTimestamp_getDEREncoded(ts2, &data, &data_length);
 	if (res != GT_OK)
@@ -373,7 +373,7 @@ static void loadpubs(VALUE self)
 		rb_raise(rb_eArgError, "'loadpubs' parameter must be either 'auto', 'once', 'no', or 'always'");	
 
 	if (res != GT_OK)
-		rb_raise(rb_eRuntimeError, "Error downloading/validating publishing data: %s", GT_getErrorString(res));	
+		rb_raise(rb_eRuntimeError, "Error downloading/validating publishing data: %s", GTHTTP_getErrorString(res));	
 }
 
 static VALUE 
@@ -515,7 +515,7 @@ guardtime_verify(int argc, VALUE *argv, VALUE obj)
 
 	if (res != GT_OK) {
 		GTTimestamp_free(ts);
-		rb_raise(rb_eRuntimeError, "%s", GT_getErrorString(res));
+		rb_raise(rb_eRuntimeError, "%s", GTHTTP_getErrorString(res));
 	}
 
 #define RBNILSTR(n, i) \
@@ -787,9 +787,9 @@ void Init_guardtime()
 	res = GT_init();
 	if (res != GT_OK)
 		rb_raise(rb_eRuntimeError, "%s", GT_getErrorString(res));
-	res = GTHTTP_init("ruby api 0.0.4", 1);
+	res = GTHTTP_init("ruby api 0.0.5", 1);
 	if (res != GT_OK)
-		rb_raise(rb_eRuntimeError, "%s", GT_getErrorString(res));
+		rb_raise(rb_eRuntimeError, "%s", GTHTTP_getErrorString(res));
 
 	rb_cGuardTime = rb_define_class("GuardTime", rb_cObject);
 	rb_define_alloc_func(rb_cGuardTime, guardtime_allocate);

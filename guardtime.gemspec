@@ -3,13 +3,13 @@ require 'rubygems'
 Gem::Specification.new do |s|
   s.platform = Gem::Platform::RUBY
   s.name = 'guardtime'
-  s.version = "0.0.4"
+  s.version = "0.0.5"
   s.summary = 'GuardTime service access extension for Ruby'
   s.description = <<-EOF
 Keyless Signatures are a combination of hash function based server-side signatures and hash-linking based digital timestamping delivered using a distributed and hierarchical infrastructure.
-This extension provides high-level API to access KSI.
+This extension provides high-level API to access the KSI.
   EOF
-  s.author = 'GuardTime AS'
+  s.author = 'Guardtime AS'
   s.email = 'info@guardtime.com'
   s.homepage = 'https://github.com/ristik/ruby-guardtime' 
   s.license = 'apache-2.0'

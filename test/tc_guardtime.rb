@@ -5,7 +5,7 @@ require 'test/unit'
 class TestGuardTime < Test::Unit::TestCase
 
   def test_old
-	ts = File.open( File.dirname(__FILE__) + File::SEPARATOR + 'cat.gif.gtts', 'rb' ) do |f|
+	ts = File.open( File.dirname(__FILE__) + File::SEPARATOR + 'importantdata.txt.gtts', 'rb' ) do |f|
 		f.read
 	end
 	gt3 = GuardTime.new
@@ -26,7 +26,7 @@ class TestGuardTime < Test::Unit::TestCase
 			r[:verification_errors] == GuardTime::NO_FAILURES
 		end
 	end
-	h3 = Digest::SHA2.new << File.read(File.dirname(__FILE__) + File::SEPARATOR + 'cat.gif')
+	h3 = Digest::SHA2.new << File.read(File.dirname(__FILE__) + File::SEPARATOR + 'importantdata.txt')
 	assert( gt3.verify(ts, h3) )    
 	assert( gt3.verify(ts, h3) do |r|
 		assert_equal( GuardTime::PUBLICATION_CHECKED | GuardTime::PUBLICATION_REFERENCE_PRESENT | 
