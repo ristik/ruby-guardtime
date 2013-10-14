@@ -2,7 +2,7 @@
 
 - libcurl
 - openssl 0.9.8+
-- GuardTime C API
+- Guardtime C API
 
 == installation on Debian:
 
@@ -24,4 +24,4 @@ or
 
 Please use 
    CPPFLAGS="-I/opt/local/include -fPIC" LDFLAGS="-L/opt/local/lib -R/opt/local/lib"  ./configure --prefix=/opt/local --disable-shared
-for configuring the GuardTime C API. Adjust dependency install commands etc.
+for configuring the Guardtime C API. Adjust dependency install commands etc.

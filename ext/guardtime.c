@@ -1,7 +1,7 @@
 /*
- * Copyright 2013 GuardTime AS
+ * Copyright 2013 Guardtime AS
  *
- * This file is part of the GuardTime Ruby SDK.
+ * This file is part of the Guardtime Ruby SDK.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -779,7 +779,7 @@ guardtime_initialize(int argc, VALUE *argv, VALUE obj)
 }
 
 /* 
- * This API provides access to the GuardTime keyless signature service.
+ * This API provides access to the Guardtime keyless signature service.
  */
 void Init_guardtime()
 {
