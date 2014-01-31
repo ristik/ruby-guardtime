@@ -15,7 +15,7 @@ This extension provides high-level API to access the KSI.
   s.license = 'apache-2.0'
   s.has_rdoc = true
   s.rdoc_options = [ '--main', 'README.rdoc', 'README.rdoc', 'ext/guardtime.c' ]
-  s.files = [ 'COPYING', 'INSTALL', 'README.rdoc', 'ChangeLog', 'ext/guardtime.c', 'ext/extconf.rb' ]
+  s.files = [ 'COPYING', 'INSTALL.rdoc', 'README.rdoc', 'ChangeLog', 'ext/guardtime.c', 'ext/extconf.rb' ]
   s.files += Dir.glob('test/*')
   s.test_files = Dir.glob('test/tc_*.rb')
   s.extensions = ['ext/extconf.rb']

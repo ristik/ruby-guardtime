@@ -8,7 +8,7 @@ API docs: http://rubydoc.info/gems/guardtime/
 
 Information about the service: http://www.guardtime.com/signatures/technology-overview/
 
-Installation: see INSTALL
+Installation: see INSTALL.rdoc
 
 == Background
 
