@@ -7,12 +7,17 @@ rvm:
   - rbx
   - ree
 
-gemfile: test/Gemfile.travis
-
 install: 'wget http://download.guardtime.com/libgt-0.3.12.tar.gz -O - | tar xfz - && cd libgt-0.3.12 &&  ./configure --silent --prefix=/usr && make && sudo make install && cd ..'
 
 script: 
   - 'ruby ext/extconf.rb'
   - make
+  - echo $TRAVIS_RUBY_VERSION
+  - '[[ $TRAVIS_RUBY_VERSION =~ "rbx" ]] && gem install rubysl-test-unit || true'
   - 'ruby test/tc_guardtime.rb'
   - 'gem build guardtime.gemspec'
+
+matrix:
+  allow_failures:
+    - rvm: rbx
+
