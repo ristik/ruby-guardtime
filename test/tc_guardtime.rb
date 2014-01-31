@@ -1,6 +1,14 @@
 require './guardtime'
 require 'digest/sha2'
-require 'test/unit'
+begin
+  require 'test/unit'
+rescue LoadError
+  # work around for Rubinius not having a std std-lib
+  require 'rubysl-test-unit' if defined?(RUBY_ENGINE) && RUBY_ENGINE == 'rbx'
+  require 'test/unit'
+end
+
+
 
 class TestGuardTime < Test::Unit::TestCase
 
