@@ -8,9 +8,9 @@
 
    apt-get install ruby ruby-dev rubygems
    apt-get install libcurl-dev openssl-dev
-   wget http://download.guardtime.com/libgt-0.3.11-src.tgz
-   tar xfz libgt-0.3.11-src.tgz
-   cd libgt-0.3.11
+   wget http://download.guardtime.com/libgt-0.3.12.tar.gz
+   tar xfz libgt-0.3.12.tar.gz
+   cd libgt-0.3.12
    ./configure --disable-shared
    make
    sudo make install

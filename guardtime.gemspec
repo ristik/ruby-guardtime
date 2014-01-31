@@ -3,7 +3,7 @@ require 'rubygems'
 Gem::Specification.new do |s|
   s.platform = Gem::Platform::RUBY
   s.name = 'guardtime'
-  s.version = "0.0.5"
+  s.version = "0.0.6"
   s.summary = 'GuardTime service access extension for Ruby'
   s.description = <<-EOF
 Keyless Signatures are a combination of hash function based server-side signatures and hash-linking based digital timestamping delivered using a distributed and hierarchical infrastructure.
